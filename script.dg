@@ -1,0 +1,52 @@
+// The first important part of the "convertMap" is the Record IDs of existing records that we want the converted lead to join into. E.g. if an Account with the name of the "Company" already exists, or if a Contact with the same email already exists. Zoho CRM does this automatically for you when doing the regular "Convert" action, but we need to manually pass the IDs of those records when doing it via API.
+convertMap = Map();
+// We search for an already existing contact by email.
+contactSearch = zoho.crm.searchRecords("Contacts","(Email:equals:" + leadEmail + ")");
+if(!contactSearch.isEmpty())
+{
+	contactId = contactSearch.get(0).get("id");
+}
+if(!contactId.isNull())
+{
+	convertMap.put("Contacts",contactId);
+}
+// There can be issues doing a record search if the name of an Account has forbidden characters like ">" or ")", so we first URL encode the Company Name. 
+leadCompanyEncrypted = zoho.encryption.urlEncode(leadCompany);
+// We search for an already existing Account by Account Name.
+accountSearch = zoho.crm.searchRecords("Accounts","(Account_Name:equals:" + leadCompanyEncrypted + ")");
+info accountSearch;
+if(!accountSearch.isEmpty())
+{
+	accountId = accountSearch.get(0).get("id");
+}
+info accountId;
+if(!accountId.isNull())
+{
+	convertMap.put("Accounts",accountId);
+}
+// The "overwrite" parameter tells it to overwrite data on the existing Account/Contact, if they exist.
+convertMap.put("overwrite",true);
+// The "assign_to" parameter determines which user will own the resultant records.
+convertMap.put("assign_to",ownerId);
+// The Convert Map also contains information on the converted Deal. This can be a bit confusing — most data will pass from the Lead to the resultant records automatically, based on the info in the "Lead Conversion Mapping" settings. However, some information on the Deal (Stage, Amount, Closing Date, Pipeline, off the top of my head) need to be stipulated WITHIN the Conversion action, i.e. they can't be set within Lead Conversion Mapping. 
+dealsMap = Map();
+dealsMap.put("Amount",dealAmountEstimate);
+dealsMap.put("Deal_Name",dealName);
+dealsMap.put("Closing_Date",estimatedDealClosingDate);
+dealsMap.put("Stage",stage);
+// Just an interesting point — "Pipeline" is just passed as a string value. So if you use Pipelines, you'll need to have a Pipeline field in your Leads module (or you can hard-code the Pipeline as part of an if statement based off other info from your Lead. That's outside of the scope of this function)
+dealsMap.put("Pipeline",pipeline);
+// The Deals Map is simply added to the Convert Map. 
+convertMap.put("Deals",dealsMap);
+// The Convert Map needs to be passed as a JSON string, which you'll see in the API call.
+dataParam = {"data":{convertMap}};
+// Nothing too crazy here, except for the required ".toString()" for the parameters. Again, the Conversion action requires a JSON string.
+convert = invokeurl
+[
+	url :"https://www.zohoapis.com/crm/v2/Leads/" + leadId + "/actions/convert"
+	type :POST
+	parameters:dataParam.toString()
+	connection:"crm"
+];
+// Finally, here's a simple example of how to get the ID for the resultant records. With this ID, you can update and edit fields for records that were created via the Lead Conversion that happened above.
+dealId = convert.get("data").get(0).get("Deals");
