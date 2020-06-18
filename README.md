@@ -1,6 +1,6 @@
 # lead-conversion
 Shows off Lead conversion via API in Zoho CRM — what parameters need to be passed, and how to update the resultant records.
-# What-do-you-need to execute this function?
+# What do you need to execute this function?
 * Make sure you've set up your Lead Conversion Mapping.
 * This function relies on the "Convert Lead" API call. So you'll need an established connection between the CRM and itself with .modules.all permissions.
 # Why API and Not zoho.crm.convertLead()?
